@@ -1,9 +1,19 @@
-from rest_framework import viewsets
+from django.shortcuts import render
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework import viewsets, permissions 
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from .serializers import CategoriesSerializer, CommentSerializer, ReviewSerializer
-from reviews.models import Categories, Comment, Review
+from .serializers import CategoriesSerializer, CommentSerializer, ReviewSerializer, UserSerializer
+from reviews.models import Categories, Comment, Review, User
+from .permissions import IsAdmin
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (IsAdmin,)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
