@@ -33,6 +33,7 @@ The following points are roughly as they should be. You should do as you are acc
 1. Get all genres, along with categories, titles and their corresponding reviews and comments
 2. Make, update and delete reviews and comments
 3. Making, updating and deleting genres, categories and titles can be done only by a user with Administrator permission
+4. Everything, except getting your own authorization details or updating them, can be done only by a user with Administrator permission
 
 ## Examples of usage
 1. GET-requests (**NB!** The resulting JSON objects are paginated and therefore do not have all desired objects in one bundle):
@@ -55,6 +56,10 @@ The following points are roughly as they should be. You should do as you are acc
 4. DELETE-requests:
  - Reviews - `titles/{title_id}/reviews/{review_id}/`
  - Comments - `titles/{title_id}/reviews/{review_id}/comments/{comment_id}/`
+
+5. Authorization details:
+ - Get your authorization details - GET-request to `users/me/`
+ - Update your authorization details - PATCH-request to `users/me/`, with required `username` and `email` fields and three other optional fields - `first_name`, `last_name` and `bio`
 
 ## Authors
  - Team Lead - @moritys
