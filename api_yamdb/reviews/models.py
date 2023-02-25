@@ -70,6 +70,7 @@ class Categories(models.Model):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
@@ -86,6 +87,7 @@ class Genre(models.Model):
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
@@ -112,6 +114,7 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
@@ -135,7 +138,7 @@ class Review(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='reviews'
     )
-    score = models.IntegerField(choices=Rating.choices)
+    rating = models.IntegerField(choices=Rating.choices)
     pub_date = models.DateTimeField(auto_now_add=True)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='titles'

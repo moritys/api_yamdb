@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CategoriesViewSet, CommentViewSet, ReviewViewSet,
-    UserViewSet, get_jwt_token, register_user
+    UserViewSet, get_jwt_token, register_user, TitleViewSet, GenreViewSet
     )
 
 router_v1 = DefaultRouter()
@@ -20,6 +20,12 @@ router_v1.register(
 )
 router_v1.register(
     r'^categories', CategoriesViewSet, basename='api_categories'
+)
+router_v1.register(
+    r'^titles', TitleViewSet, basename='api_titles'
+)
+router_v1.register(
+    r'^genres', GenreViewSet, basename='api_genres'
 )
 
 urlpatterns = [

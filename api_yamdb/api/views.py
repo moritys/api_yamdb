@@ -12,9 +12,10 @@ from rest_framework_simplejwt.tokens import AccessToken
 from .serializers import (
     CategoriesSerializer, CommentSerializer, ReviewSerializer,
     UserSerializer, TokenSerializer, RegisterDataSerializer,
-    UserEditSerializer
+    UserEditSerializer, GenreSerializer,
+    TitleSerializerGet, TitleSerializerPost
     )
-from reviews.models import Categories, Comment, Title, Review, User
+from reviews.models import Categories, Comment, Title, Review, User, Genre
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
 
 
@@ -50,7 +51,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes=(IsAdminOrAuthorOrReadOnly,)
+    permission_classes = (IsAdminOrAuthorOrReadOnly,)
     def get_queryset(self):
         comments = Comment.objects.filter(id=self.review_id)
         return comments
@@ -76,9 +77,27 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CategoriesViewSet(viewsets.ModelViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
-    permission_classes=(IsAdminOrReadOnly,)
+    permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    permission_classes = (IsAdminOrReadOnly,)
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return TitleSerializerGet
+        return TitleSerializerPost
 
 
 @api_view(['POST'])
