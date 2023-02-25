@@ -60,8 +60,62 @@ class User(AbstractUser):
         ]
 
 
-class Title(models.Model):  # Это модель произведения, тут Маша
-    pass
+class Categories(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Название')
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        verbose_name='URL категории'
+    )
+
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.name
+
+
+class Genre(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Название')
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        verbose_name='URL жанра'
+    )
+
+    class Meta:
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
+
+    def __str__(self):
+        return self.name
+
+
+class Title(models.Model):
+    category = models.ForeignKey(
+        Categories,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='titles',
+        verbose_name='Slug категории'
+    )
+    genre = models.ManyToManyField(Genre)
+    name = models.CharField(
+        max_length=256, verbose_name='Название', default='Title name'
+    )
+    year = models.IntegerField(verbose_name='Год выпуска', default=2000)
+    description = models.CharField(
+        max_length=256, verbose_name='Описание', null=True
+    )
+
+    class Meta:
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
+
+    def __str__(self):
+        return self.name
 
 
 class Review(models.Model):
@@ -93,17 +147,3 @@ class Comment(models.Model):
         return self.text[:15]
 
 
-class Categories(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название')
-    slug = models.SlugField(
-        max_length=50,
-        unique=True,
-        verbose_name='URL категории'
-    )
-
-    class Meta:
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
-
-    def __str__(self):
-        return self.name
