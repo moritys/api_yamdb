@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+import datetime as dt
 
 from reviews.models import Categories, Comment, Review, User, Genre, Title
 
@@ -44,6 +45,13 @@ class TitleSerializerPost(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
+
+    def validate_year(self, year):
+        if year > dt.date.today().year:
+            raise serializers.ValidationError(
+                'Нельзя добавлять произведения из будущего!'
+            )
+        return year
 
 
 class TitleSerializerGet(serializers.ModelSerializer):
