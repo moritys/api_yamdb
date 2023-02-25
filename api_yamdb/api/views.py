@@ -14,7 +14,7 @@ from .serializers import (
     UserSerializer, TokenSerializer, RegisterDataSerializer,
     UserEditSerializer
     )
-from reviews.models import Categories, Comment, Review, User
+from reviews.models import Categories, Comment, Title, Review, User
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
 
 
@@ -56,7 +56,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         return comments
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        review = Title.objects.filter(author=self.request.user)
+        if not (review is None):
+            serializer.save(author=self.request.user)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
