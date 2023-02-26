@@ -10,12 +10,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from .serializers import (
-    CategoriesSerializer, CommentSerializer, ReviewSerializer,
+    CategorySerializer, CommentSerializer, ReviewSerializer,
     UserSerializer, TokenSerializer, RegisterDataSerializer,
     UserEditSerializer, GenreSerializer,
     TitleSerializerGet, TitleSerializerPost
     )
-from reviews.models import Categories, Comment, Title, Review, User, Genre
+from reviews.models import Category, Comment, Title, Review, User, Genre
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
 
 
@@ -74,9 +74,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class CategoriesViewSet(viewsets.ModelViewSet):
-    queryset = Categories.objects.all()
-    serializer_class = CategoriesSerializer
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
