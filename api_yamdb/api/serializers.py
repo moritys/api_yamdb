@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 import datetime as dt
 
-from reviews.models import Categories, Comment, Review, User, Genre, Title
+from reviews.models import Category, Comment, Review, User, Genre, Title
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -19,10 +19,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'rating', 'pub_date',)
 
 
-class CategoriesSerializer(serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Categories
+        model = Category
         fields = ('name', 'slug',)
 
 
@@ -38,13 +38,15 @@ class TitleSerializerPost(serializers.ModelSerializer):
         many=True, slug_field='slug', queryset=Genre.objects.all()
     )
     category = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Categories.objects.all()
+        slug_field='slug', queryset=Category.objects.all()
     )
     description = serializers.StringRelatedField(required=False)
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category',
+        )
 
     def validate_year(self, year):
         if year > dt.date.today().year:
@@ -56,11 +58,13 @@ class TitleSerializerPost(serializers.ModelSerializer):
 
 class TitleSerializerGet(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
-    category = CategoriesSerializer()
+    category = CategorySerializer()
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category',
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
