@@ -121,50 +121,51 @@ class Title(models.Model):
 
 
 class Review(models.Model):
-
-    class Rating(models.IntegerChoices):
-        UTTER_FAILURE = 1
-        HORRIBLE = 2
-        BAD = 3
-        BELOW_AVERAGE = 4
-        ONE_TIMER = 5
-        ABOVE_AVERAGE = 6
-        VERY_GOOD = 7
-        AWESOME = 8
-        EXCELLENT = 9
-        MASTERPIECE = 10
-
     text = models.TextField()
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='reviews'
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews_author',
     )
-    rating = models.IntegerField(choices=Rating.choices)
-    pub_date = models.DateTimeField(auto_now_add=True)
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name='titles'
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews_title',
     )
-
-    class Meta:
-        verbose_name = 'Отзыв'
-        verbose_name_plural = 'Отзывы'
+    score = models.IntegerField()
+    pub_date = models.DateTimeField(
+        'Дата отзыва', auto_now_add=True, db_index=True)
 
     def __str__(self):
         return self.text[:15]
+
+    class Meta:
+        ordering = ('pub_date',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_title_author'
+            ),
+        ]
 
 
 class Comment(models.Model):
     text = models.TextField()
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='comments'
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments_author',
     )
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name='comments'
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments_review',
     )
-    pub_date = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
+    pub_date = models.DateTimeField(
+        'Дата комментария', auto_now_add=True, db_index=True)
 
     def __str__(self):
         return self.text[:15]
+
+    class Meta:
+        ordering = ('pub_date',)
