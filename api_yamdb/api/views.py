@@ -1,9 +1,7 @@
-from django.shortcuts import render
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework import viewsets, permissions, status
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action, api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
@@ -14,8 +12,8 @@ from .serializers import (
     UserSerializer, TokenSerializer, RegisterDataSerializer,
     UserEditSerializer, GenreSerializer,
     TitleSerializerGet, TitleSerializerPost
-    )
-from reviews.models import Category, Comment, Title, Review, User, Genre
+)
+from reviews.models import Category, Comment, Title, User, Genre
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
 
 
@@ -26,7 +24,7 @@ class UserViewSet(viewsets.ModelViewSet):
     lookup_field = 'username'
 
     @action(
-        methods=['get', 'patch',],
+        methods=['get', 'patch', ],
         detail=False,
         url_path='me',
         permission_classes=[permissions.IsAuthenticated],
@@ -51,10 +49,15 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (IsAdminOrAuthorOrReadOnly,)
+
     def get_queryset(self):
-        comments = Comment.objects.filter(id=self.review_id)
+        comments = Comment.objects.filter(id=self.kwargs.get('review_id'))
         return comments
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return (permissions.IsAuthenticated(),)
+        return (IsAdminOrAuthorOrReadOnly(),)
 
     def perform_create(self, serializer):
         review = Title.objects.filter(author=self.request.user)
@@ -65,13 +68,18 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
+    permission_classes = (IsAdminOrAuthorOrReadOnly, )
 
     def get_queryset(self):
-        reviews = Review.objects.filter(id=self.title_id)
-        return reviews
+        title_id = self.kwargs.get('title_id')
+        title = get_object_or_404(Title, id=title_id)
+        return title.reviews_title.all()
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        title_id = self.kwargs.get('title_id')
+        title = get_object_or_404(Title, id=title_id)
+        serializer.save(author=self.request.user,
+                        title=title)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -93,7 +101,7 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
-    
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return TitleSerializerGet
@@ -103,7 +111,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register_user(request):
-    serializer = RegisterDataSerializer (data=request.data)
+    serializer = RegisterDataSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     user = get_object_or_404(
@@ -118,6 +126,7 @@ def register_user(request):
         recipient_list=[user.email],
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])

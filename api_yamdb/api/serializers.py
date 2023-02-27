@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueValidator, ValidationError
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 import datetime as dt
 
 from reviews.models import Category, Comment, Review, User, Genre, Title
@@ -13,10 +15,28 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
 
     class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
-        fields = ('id', 'text', 'author', 'rating', 'pub_date',)
+        extra_kwargs = {'score': {'min_value': 1, 'max_value': 10}, }
+
+    def validate(self, data):
+        user = self.context.get('request').user
+        title_id = (self.context.get('request').parser_context.get('kwargs')
+                    .get('title_id'))
+        title = get_object_or_404(Title, id=title_id)
+        if (
+                Review.objects.filter(title=title, author=user).exists()
+                and self.context.get('request').method == 'POST'
+        ):
+            raise ValidationError('Действие запрещено, отзыв уже создан')
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -59,12 +79,21 @@ class TitleSerializerPost(serializers.ModelSerializer):
 class TitleSerializerGet(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
         fields = (
-            'id', 'name', 'year', 'description', 'genre', 'category',
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category',
         )
+
+    def get_rating(self, obj):
+        score_avg = \
+            Review.objects.filter(title_id=obj.id).aggregate(Avg('score'))[
+                'score__avg']
+        if score_avg is None:
+            return None
+        return int(score_avg)
 
 
 class UserSerializer(serializers.ModelSerializer):
