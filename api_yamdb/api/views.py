@@ -13,7 +13,7 @@ from .serializers import (
     UserEditSerializer, GenreSerializer,
     TitleSerializerGet, TitleSerializerPost
 )
-from reviews.models import Category, Comment, Title, User, Genre
+from reviews.models import Category, Comment, Title, User, Genre, Review
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
 
 
@@ -51,8 +51,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
     def get_queryset(self):
-        comments = Comment.objects.filter(id=self.kwargs.get('review_id'))
-        return comments
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id)
+        return review.comments_review.all()
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -60,10 +61,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         return (IsAdminOrAuthorOrReadOnly(),)
 
     def perform_create(self, serializer):
-        review = Title.objects.filter(author=self.request.user)
-        if not (review is None):
-            serializer.save(author=self.request.user)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id)
+        serializer.save(author=self.request.user, review=review)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
