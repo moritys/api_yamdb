@@ -1,6 +1,6 @@
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, mixins
 from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action, api_view, permission_classes
 from django.shortcuts import get_object_or_404
@@ -22,9 +22,12 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     lookup_field = 'username'
+    filter_backends = (SearchFilter,)
+    search_fields = ('username',)
+    http_method_names = ['post', 'get', 'patch', 'delete']
 
     @action(
-        methods=['get', 'patch', ],
+        methods=['get', 'patch'],
         detail=False,
         url_path='me',
         permission_classes=[permissions.IsAuthenticated],
@@ -68,7 +71,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (IsAdminOrAuthorOrReadOnly, )
+    permission_classes = (IsAdminOrAuthorOrReadOnly,)
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
@@ -113,11 +116,11 @@ class TitleViewSet(viewsets.ModelViewSet):
 def register_user(request):
     serializer = RegisterDataSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    serializer.save()
-    user = get_object_or_404(
-        User,
-        username=serializer.validated_data['username']
-    )
+    if User.objects.filter(
+                username=serializer.validated_data['username'],
+                email=serializer.validated_data['email']):
+        return Response(request.data, status=status.HTTP_200_OK)
+    user = serializer.save()
     confirmation_code = default_token_generator.make_token(user)
     send_mail(
         subject='YaMDb registration',
