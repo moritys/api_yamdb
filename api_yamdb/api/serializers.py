@@ -1,10 +1,12 @@
-from rest_framework import serializers
-from rest_framework.validators import UniqueValidator, ValidationError
-from django.db.models import Avg
-from django.shortcuts import get_object_or_404
 import datetime as dt
 
-from reviews.models import Category, Comment, Review, User, Genre, Title
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404
+
+from rest_framework import serializers
+from rest_framework.validators import UniqueValidator, ValidationError
+
+from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_usernames
 
 
@@ -106,7 +108,7 @@ class TitleSerializerGet(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         validators=[
-            UniqueValidator(queryset=User.objects.all()), validate_usernames 
+            UniqueValidator(queryset=User.objects.all()), validate_usernames
         ],
         max_length=150,
         required=True,
@@ -125,8 +127,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserEditSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(max_length=150, validators=[validate_usernames])
+    username = serializers.CharField(
+        max_length=150, validators=[validate_usernames]
+    )
     email = serializers.EmailField(max_length=254)
+
     class Meta:
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
@@ -159,7 +164,7 @@ class RegisterDataSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError('email уже существует')
         return data
-    
+
     def validate_username(self, value):
         if value.lower() == 'me':
             raise serializers.ValidationError('Username "me" is not valid')

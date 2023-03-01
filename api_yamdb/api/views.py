@@ -1,24 +1,25 @@
-from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
-
-from rest_framework import mixins, viewsets, permissions, status
-
-from rest_framework.filters import SearchFilter
-from rest_framework.decorators import action, api_view, permission_classes
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+
 from django_filters.rest_framework import DjangoFilterBackend
+
+from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
+
 from rest_framework_simplejwt.tokens import AccessToken
 
-from .serializers import (
-    CategorySerializer, CommentSerializer, ReviewSerializer,
-    UserSerializer, TokenSerializer, RegisterDataSerializer,
-    UserEditSerializer, GenreSerializer,
-    TitleSerializerGet, TitleSerializerPost
-)
-from reviews.models import Category, Comment, Title, User, Genre, Review
-from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
+from reviews.models import Category, Genre, Review, Title, User
+
 from .filters import TitleFilter
+from .permissions import IsAdmin, IsAdminOrAuthorOrReadOnly, IsAdminOrReadOnly
+from .serializers import (
+    CategorySerializer, CommentSerializer, GenreSerializer,
+    RegisterDataSerializer, ReviewSerializer, TitleSerializerGet,
+    TitleSerializerPost, TokenSerializer, UserEditSerializer, UserSerializer
+)
 
 
 class CategoryGenreViewSet(
@@ -133,8 +134,9 @@ def register_user(request):
     serializer = RegisterDataSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if User.objects.filter(
-                username=serializer.validated_data['username'],
-                email=serializer.validated_data['email']):
+        username=serializer.validated_data['username'],
+        email=serializer.validated_data['email']
+    ):
         return Response(request.data, status=status.HTTP_200_OK)
     user = serializer.save()
     confirmation_code = default_token_generator.make_token(user)
