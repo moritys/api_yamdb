@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 import datetime as dt
 
 from reviews.models import Category, Comment, Review, User, Genre, Title
+from reviews.validators import validate_usernames
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -105,14 +106,16 @@ class TitleSerializerGet(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         validators=[
-            UniqueValidator(queryset=User.objects.all())
+            UniqueValidator(queryset=User.objects.all()), validate_usernames 
         ],
+        max_length=150,
         required=True,
     )
     email = serializers.EmailField(
         validators=[
             UniqueValidator(queryset=User.objects.all())
-        ]
+        ],
+        max_length=254
     )
 
     class Meta:
@@ -122,6 +125,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserEditSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(max_length=150, validators=[validate_usernames])
+    email = serializers.EmailField(max_length=254)
     class Meta:
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
@@ -130,25 +135,35 @@ class UserEditSerializer(serializers.ModelSerializer):
 
 
 class RegisterDataSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(
-        validators=[
-            UniqueValidator(queryset=User.objects.all())
-        ]
-    )
+    email = serializers.EmailField(max_length=254)
     username = serializers.CharField(
-        validators=[
-            UniqueValidator(queryset=User.objects.all())
-        ]
+        validators=[validate_usernames],
+        max_length=150
     )
 
+    class Meta:
+        model = User
+        fields = ('username', 'email')
+
+    def validate(self, data):
+        username = data.get('username')
+        email = data.get('email')
+        if (
+            User.objects.filter(username=username).exists()
+            and User.objects.get(username=username).email != email
+        ):
+            raise serializers.ValidationError('username уже используется')
+        if (
+            User.objects.filter(email=email).exists()
+            and User.objects.get(email=email).username != username
+        ):
+            raise serializers.ValidationError('email уже существует')
+        return data
+    
     def validate_username(self, value):
         if value.lower() == 'me':
             raise serializers.ValidationError('Username "me" is not valid')
         return value
-
-    class Meta:
-        fields = ('email', 'username')
-        model = User
 
 
 class TokenSerializer(serializers.Serializer):
