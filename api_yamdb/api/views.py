@@ -1,9 +1,12 @@
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import viewsets, permissions, status, mixins
+
+from rest_framework import mixins, viewsets, permissions, status
+
 from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action, api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -13,8 +16,17 @@ from .serializers import (
     UserEditSerializer, GenreSerializer,
     TitleSerializerGet, TitleSerializerPost
 )
-from reviews.models import Category, Comment, Title, User, Genre
+from reviews.models import Category, Comment, Title, User, Genre, Review
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAdminOrAuthorOrReadOnly
+from .filters import TitleFilter
+
+
+class CategoryGenreViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    """Mixin for Category and Genre models."""
+    pass
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -54,8 +66,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
     def get_queryset(self):
-        comments = Comment.objects.filter(id=self.kwargs.get('review_id'))
-        return comments
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id)
+        return review.comments_review.all()
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -63,10 +76,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         return (IsAdminOrAuthorOrReadOnly(),)
 
     def perform_create(self, serializer):
-        review = Title.objects.filter(author=self.request.user)
-        if not (review is None):
-            serializer.save(author=self.request.user)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id)
+        serializer.save(author=self.request.user, review=review)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -85,25 +97,29 @@ class ReviewViewSet(viewsets.ModelViewSet):
                         title=title)
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
