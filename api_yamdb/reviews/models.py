@@ -4,6 +4,20 @@ from django.db import models
 from .validators import validate_usernames
 
 
+class CategoryGenreModel(models.Model):
+    """Общая модель для категорий и жанров."""
+    name = models.CharField(max_length=256, verbose_name='Название')
+
+    class Meta:
+        abstract = True
+        verbose_name = 'Название'
+        verbose_name_plural = 'Название во множественном числе'
+        ordering = ['id']
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser):
     ADMIN = 'admin'
     MODERATOR = 'moderator'
@@ -62,8 +76,7 @@ class User(AbstractUser):
         ]
 
 
-class Category(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название')
+class Category(CategoryGenreModel):
     slug = models.SlugField(
         max_length=50,
         unique=True,
@@ -73,14 +86,9 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-        ordering = ['id']
-
-    def __str__(self):
-        return self.name
 
 
-class Genre(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название')
+class Genre(CategoryGenreModel):
     slug = models.SlugField(
         max_length=50,
         unique=True,
@@ -90,10 +98,6 @@ class Genre(models.Model):
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-        ordering = ['id']
-
-    def __str__(self):
-        return self.name
 
 
 class Title(models.Model):

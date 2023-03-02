@@ -10,6 +10,13 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_usernames
 
 
+class CategoryGenreSerializer(serializers.ModelSerializer):
+    """Общий класс для категорий и жанров."""
+
+    class Meta:
+        lookup_field = 'slug'
+
+
 class ReviewCommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
@@ -48,20 +55,24 @@ class ReviewSerializer(ReviewCommentSerializer):
         return data
 
 
-class CategorySerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+"""
+По каким-то причинам поле exclude не наследуется от родительского.
+Пришлось оставить его в дочерних классах.
+"""
+
+
+class CategorySerializer(CategoryGenreSerializer):
 
     class Meta:
         model = Category
-        fields = ('name', 'slug',)
+        exclude = ('id',)
 
 
-class GenreSerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+class GenreSerializer(CategoryGenreSerializer):
 
     class Meta:
         model = Genre
-        fields = ('name', 'slug',)
+        exclude = ('id',)
 
 
 class TitleSerializerPost(serializers.ModelSerializer):
@@ -74,9 +85,7 @@ class TitleSerializerPost(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = (
-            'id', 'name', 'year', 'description', 'genre', 'category',
-        )
+        fields = '__all__'
 
     def validate_year(self, year):
         if year > dt.date.today().year:
