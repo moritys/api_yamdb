@@ -127,8 +127,20 @@ class Title(models.Model):
         return self.name
 
 
-class Review(models.Model):
+class ReviewCommentModel(models.Model):
     text = models.TextField()
+    pub_date = models.DateTimeField(
+        'Дата отзыва', auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        return self.text[:15]
+
+    class Meta:
+        abstract = True
+        ordering = ('pub_date',)
+
+
+class Review(ReviewCommentModel):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -140,14 +152,9 @@ class Review(models.Model):
         related_name='reviews_title',
     )
     score = models.IntegerField()
-    pub_date = models.DateTimeField(
-        'Дата отзыва', auto_now_add=True, db_index=True)
-
-    def __str__(self):
-        return self.text[:15]
 
     class Meta:
-        ordering = ('pub_date',)
+
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
@@ -156,8 +163,7 @@ class Review(models.Model):
         ]
 
 
-class Comment(models.Model):
-    text = models.TextField()
+class Comment(ReviewCommentModel):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -168,11 +174,3 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments_review',
     )
-    pub_date = models.DateTimeField(
-        'Дата комментария', auto_now_add=True, db_index=True)
-
-    def __str__(self):
-        return self.text[:15]
-
-    class Meta:
-        ordering = ('pub_date',)
