@@ -129,19 +129,29 @@ def register_user(request):
     serializer = RegisterDataSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if User.objects.filter(
-        username=serializer.validated_data['username'],
-        email=serializer.validated_data['email']
-    ):
-        return Response(request.data, status=status.HTTP_200_OK)
+            username=serializer.validated_data['username'],
+            email=serializer.validated_data['email']).exists():
+        user = get_object_or_404(
+            User, username=serializer.validated_data['username'],
+            email=serializer.validated_data['email']
+        )
+        if user.last_login is None:
+            confirmation_code = default_token_generator.make_token(user)
+            send_email(user, confirmation_code)
+            return Response(request.data, status=status.HTTP_200_OK)
     user = serializer.save()
     confirmation_code = default_token_generator.make_token(user)
+    send_email(user, confirmation_code)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+def send_email(user, confirmation_code):
     send_mail(
         subject='YaMDb registration',
         message=f'Ваш код подтверждения: {confirmation_code}',
         from_email=None,
         recipient_list=[user.email],
     )
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
