@@ -10,28 +10,36 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_usernames
 
 
-class CommentSerializer(serializers.ModelSerializer):
+class CategoryGenreSerializer(serializers.ModelSerializer):
+    """Общий класс для категорий и жанров."""
+
+    class Meta:
+        lookup_field = 'slug'
+
+
+class ReviewCommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
         read_only=True,
         default=serializers.CurrentUserDefault()
     )
+
+    class Meta:
+        fields = '__all__'
+
+
+class CommentSerializer(ReviewCommentSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'text', 'author', 'pub_date',)
+        exclude = ('review',)
 
 
-class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        slug_field='username',
-        read_only=True,
-        default=serializers.CurrentUserDefault()
-    )
+class ReviewSerializer(ReviewCommentSerializer):
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
+        exclude = ('title',)
         extra_kwargs = {'score': {'min_value': 1, 'max_value': 10}, }
 
     def validate(self, data):
@@ -47,20 +55,24 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
 
-class CategorySerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+"""
+По каким-то причинам поле exclude не наследуется от родительского.
+Пришлось оставить его в дочерних классах.
+"""
+
+
+class CategorySerializer(CategoryGenreSerializer):
 
     class Meta:
         model = Category
-        fields = ('name', 'slug',)
+        exclude = ('id',)
 
 
-class GenreSerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+class GenreSerializer(CategoryGenreSerializer):
 
     class Meta:
         model = Genre
-        fields = ('name', 'slug',)
+        exclude = ('id',)
 
 
 class TitleSerializerPost(serializers.ModelSerializer):
@@ -73,9 +85,7 @@ class TitleSerializerPost(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = (
-            'id', 'name', 'year', 'description', 'genre', 'category',
-        )
+        fields = '__all__'
 
     def validate_year(self, year):
         if year > dt.date.today().year:

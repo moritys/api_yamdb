@@ -27,7 +27,10 @@ class CategoryGenreViewSet(
     viewsets.GenericViewSet
 ):
     """Mixin for Category and Genre models."""
-    pass
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -89,7 +92,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
         title = get_object_or_404(Title, id=title_id)
-        return title.reviews_title.all()
+        return title.reviews_title.all().order_by('id')
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
@@ -101,19 +104,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
 class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -134,19 +129,29 @@ def register_user(request):
     serializer = RegisterDataSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if User.objects.filter(
-        username=serializer.validated_data['username'],
-        email=serializer.validated_data['email']
-    ):
-        return Response(request.data, status=status.HTTP_200_OK)
+            username=serializer.validated_data['username'],
+            email=serializer.validated_data['email']).exists():
+        user = get_object_or_404(
+            User, username=serializer.validated_data['username'],
+            email=serializer.validated_data['email']
+        )
+        if user.last_login is None:
+            confirmation_code = default_token_generator.make_token(user)
+            send_email(user, confirmation_code)
+            return Response(request.data, status=status.HTTP_200_OK)
     user = serializer.save()
     confirmation_code = default_token_generator.make_token(user)
+    send_email(user, confirmation_code)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+def send_email(user, confirmation_code):
     send_mail(
         subject='YaMDb registration',
         message=f'Ваш код подтверждения: {confirmation_code}',
         from_email=None,
         recipient_list=[user.email],
     )
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
